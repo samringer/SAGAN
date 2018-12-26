@@ -26,13 +26,14 @@ class conv_layer(nn.Module):
     
     
 class conv_block(nn.Module):
-    def __init__(self, input_channels, output_channels, leakiness = 0.2):
+    def __init__(self, input_channels, output_channels, leakiness = 0.2, pool=True):
         super().__init__()
         self.in_c = input_channels
         self.out_c = output_channels
         assert log(self.in_c,2) % 1 == 0
         self.conv_1 = conv_layer(self.in_c, self.in_c)
         self.conv_2 = conv_layer(self.in_c, self.out_c)
+        self.pool = pool
         self.ave_pool = nn.AvgPool2d(kernel_size = 2)
 
         if self.in_c != self.out_c:
@@ -45,8 +46,10 @@ class conv_block(nn.Module):
             pre_pooled_output = fx_2 + self.res_conv(x)
         else:
             pre_pooled_output = fx_2 + x
-        output = self.ave_pool(pre_pooled_output)
-        return output
+        x = pre_pooled_output
+        if self.pool:
+            x = self.ave_pool(x)
+        return x
 
 class final_block(nn.Module): #Always takes in 513x4x4
     def __init__(self):
@@ -68,10 +71,12 @@ class Discriminator(nn.Module):
     
     def __init__(self):
         super().__init__()
-        self.fromRGB = conv_layer(3,128, leakiness = 0.2, kernel_size = 1, stride = 1, padding = 0)
-        self.block_1 = conv_block(128, 256)
-        self.block_2 = conv_block(256, 512)
-        self.block_3 = conv_block(512, 512)
+        self.fromRGB = conv_layer(3,64, leakiness = 0.2, kernel_size = 1, stride = 1, padding = 0)
+        self.block_1 = conv_block(64, 128, pool = False)
+        self.block_2 = conv_block(128, 256, pool = False)
+        self.block_3 = conv_block(256, 512)
+        self.block_4 = conv_block(512, 512)
+        self.block_5 = conv_block(512, 512)
         self.final_block = final_block()
     
     def forward(self, x):
@@ -79,4 +84,6 @@ class Discriminator(nn.Module):
         x = self.block_1(x)
         x = self.block_2(x)
         x = self.block_3(x)
+        x = self.block_4(x)
+        x = self.block_5(x)
         return self.final_block(x)
