@@ -5,3 +5,4 @@ latent_space_dim = 512
 train_epochs = 1000
 ts_log_interval = 10
 num_classes = 10
+leakiness = 0.2
